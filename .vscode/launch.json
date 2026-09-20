@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-CnpjApplication<cnpj>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "ia.espalha.cnpj.CnpjApplication",
+            "projectName": "cnpj",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}

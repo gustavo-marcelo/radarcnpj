@@ -1,0 +1,27 @@
+@if (total() > 0) {
+  <div class="flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600">
+    <span>Total: {{ total().toLocaleString('pt-BR') }} registros</span>
+
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        (click)="ir(paginaAtual() - 1)"
+        [disabled]="!temAnterior()"
+        class="rounded border border-slate-300 px-3 py-1 hover:bg-slate-100 disabled:opacity-40"
+      >
+        Anterior
+      </button>
+
+      <span>Página {{ paginaAtual() + 1 }} de {{ totalPaginas() }}</span>
+
+      <button
+        type="button"
+        (click)="ir(paginaAtual() + 1)"
+        [disabled]="!temProxima()"
+        class="rounded border border-slate-300 px-3 py-1 hover:bg-slate-100 disabled:opacity-40"
+      >
+        Próxima
+      </button>
+    </div>
+  </div>
+}

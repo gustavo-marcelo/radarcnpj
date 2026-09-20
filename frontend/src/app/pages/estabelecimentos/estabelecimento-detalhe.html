@@ -1,0 +1,140 @@
+<div class="space-y-4">
+  <div>
+    <a routerLink="/estabelecimentos" class="text-sm text-indigo-600 hover:underline">← Voltar para estabelecimentos</a>
+  </div>
+
+  @if (carregando()) {
+    <p class="text-slate-500">Carregando…</p>
+  }
+
+  @if (erro()) {
+    <div class="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+      {{ erro() }}
+    </div>
+  }
+
+  @if (detalhe(); as d) {
+    <div class="rounded-lg border border-slate-200 bg-white p-6">
+      <h1 class="text-xl font-semibold text-slate-800">{{ d.razaoSocial ?? d.nomeFantasia ?? '—' }}</h1>
+      <p class="mt-1 text-sm text-slate-500">
+        CNPJ: <span class="font-mono">{{ d.cnpjCompleto }}</span>
+        <span class="mx-2 text-slate-300">|</span>
+        {{ origemLabel(d.identificadorMatrizFilial) }}
+      </p>
+      @if (d.nomeFantasia) {
+        <p class="mt-1 text-sm text-slate-500">Nome fantasia: {{ d.nomeFantasia }}</p>
+      }
+    </div>
+
+    <div class="rounded-lg border border-slate-200 bg-white p-6">
+      <h2 class="mb-4 font-medium text-slate-800">Dados da empresa</h2>
+      <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div>
+          <dt class="text-xs font-medium uppercase text-slate-400">Razão social</dt>
+          <dd class="text-sm text-slate-800">{{ d.razaoSocial ?? '—' }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium uppercase text-slate-400">Natureza jurídica</dt>
+          <dd class="text-sm text-slate-800">
+            {{ d.naturezaJuridica }}@if (d.naturezaJuridicaDescricao) {
+            <span class="text-slate-500"> — {{ d.naturezaJuridicaDescricao }}</span>
+            }
+          </dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium uppercase text-slate-400">Qualificação do responsável</dt>
+          <dd class="text-sm text-slate-800">{{ d.qualificacaoResponsavel }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium uppercase text-slate-400">Porte</dt>
+          <dd class="text-sm text-slate-800">{{ porteLabel(d.porte ?? '') }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium uppercase text-slate-400">Capital social</dt>
+          <dd class="text-sm text-slate-800">
+            {{ d.capitalSocial.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }}
+          </dd>
+        </div>
+        @if (d.enteFederativo) {
+          <div>
+            <dt class="text-xs font-medium uppercase text-slate-400">Ente federativo</dt>
+            <dd class="text-sm text-slate-800">{{ d.enteFederativo }}</dd>
+          </div>
+        }
+      </dl>
+    </div>
+
+    <div class="rounded-lg border border-slate-200 bg-white p-6">
+      <h2 class="mb-4 font-medium text-slate-800">Dados do estabelecimento</h2>
+      <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div>
+          <dt class="text-xs font-medium uppercase text-slate-400">Situação cadastral</dt>
+          <dd class="text-sm text-slate-800">{{ situacaoLabel(d.situacaoCadastral) }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium uppercase text-slate-400">Data da situação</dt>
+          <dd class="text-sm text-slate-800">{{ d.dataSituacaoCadastral ?? '—' }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium uppercase text-slate-400">Início da atividade</dt>
+          <dd class="text-sm text-slate-800">{{ d.dataInicioAtividade ?? '—' }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium uppercase text-slate-400">CNAE principal</dt>
+          <dd class="text-sm text-slate-800">
+            <span class="font-mono">{{ d.cnaeFiscalPrincipal }}</span> — {{ d.cnaeDescricao ?? '' }}
+          </dd>
+        </div>
+        @if (cnaesSecundarios(d).length > 0) {
+          <div class="sm:col-span-2 lg:col-span-2">
+            <dt class="text-xs font-medium uppercase text-slate-400">CNAE secundários</dt>
+            <dd class="text-sm text-slate-800 font-mono">{{ cnaesSecundarios(d).join(', ') }}</dd>
+          </div>
+        }
+        <div>
+          <dt class="text-xs font-medium uppercase text-slate-400">País</dt>
+          <dd class="text-sm text-slate-800">{{ d.pais ?? '—' }}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="rounded-lg border border-slate-200 bg-white p-6">
+      <h2 class="mb-4 font-medium text-slate-800">Endereço e contato</h2>
+      <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="sm:col-span-2">
+          <dt class="text-xs font-medium uppercase text-slate-400">Endereço</dt>
+          <dd class="text-sm text-slate-800">{{ endereco(d) }}<br />{{ d.bairro }} — {{ d.municipio }}@if (d.municipioDescricao) {
+            <span class="text-slate-500"> — {{ d.municipioDescricao }}</span>
+          }/{{ d.uf }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium uppercase text-slate-400">CEP</dt>
+          <dd class="text-sm font-mono text-slate-800">{{ d.cep }}</dd>
+        </div>
+        @if (fone(d.ddd1, d.telefone1) ?? fone(d.ddd2, d.telefone2)) {
+          <div>
+            <dt class="text-xs font-medium uppercase text-slate-400">Telefone</dt>
+            <dd class="text-sm text-slate-800">
+              {{ fone(d.ddd1, d.telefone1) ?? fone(d.ddd2, d.telefone2) }}
+              @if (fone(d.ddd1, d.telefone1) && fone(d.ddd2, d.telefone2)) {
+                <br />{{ fone(d.ddd2, d.telefone2) }}
+              }
+            </dd>
+          </div>
+        }
+        @if (fone(d.dddFax, d.fax)) {
+          <div>
+            <dt class="text-xs font-medium uppercase text-slate-400">Fax</dt>
+            <dd class="text-sm text-slate-800">{{ fone(d.dddFax, d.fax) }}</dd>
+          </div>
+        }
+        @if (d.correioEletronico) {
+          <div class="sm:col-span-2">
+            <dt class="text-xs font-medium uppercase text-slate-400">Correio eletrônico</dt>
+            <dd class="text-sm text-indigo-600">{{ d.correioEletronico }}</dd>
+          </div>
+        }
+      </dl>
+    </div>
+  }
+</div>

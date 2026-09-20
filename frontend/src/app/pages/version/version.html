@@ -1,0 +1,68 @@
+<div
+  class="min-h-screen animated-gradient flex items-center justify-center p-8"
+>
+  <div
+    class="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 w-full max-w-md text-white text-center border border-white/20 hover-scale"
+  >
+    <!-- Ícone de versão -->
+    <div class="mb-8">
+      <div
+        class="w-20 h-20 mx-auto bg-white/20 rounded-full flex items-center justify-center mb-4"
+      >
+        <img
+          src="https://espalha.ai/images/logo.svg"
+          alt="Version Icon"
+          class="w-10 h-10 animate-pulse"
+        />
+      </div>
+    </div>
+
+    <!-- Título -->
+    <h1
+      class="text-3xl font-bold mb-2 bg-linear-to-r from-[#f5faeb] to-[#b4dc7a] bg-clip-text text-transparent text-glow"
+    >
+      Informações da Versão
+    </h1>
+    <p class="text-white/70 mb-8">Detalhes da aplicação atual</p>
+
+    <!-- Card da versão -->
+    <div
+      class="bg-white/5 rounded-xl p-6 mb-6 border border-white/10 hover-scale"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <span class="text-white/70 text-sm uppercase tracking-wide"
+          >Versão da Aplicação</span
+        >
+        <div
+          class="bg-green-500/20 text-green-300 px-3 py-1 rounded-full text-xs font-medium"
+        >
+          Ativo
+        </div>
+      </div>
+
+      <div
+        class="text-4xl font-mono font-bold mb-2 text-yellow-400 version-number"
+      >
+        v{{ appVersion }}
+      </div>
+
+      <p class="text-white/60 text-sm">
+        Build atualizado em: {{ getCurrentDate() }}
+      </p>
+    </div>
+
+    <!-- Rodapé -->
+    <div class="mt-8 pt-6 border-t border-white/10">
+      <p class="text-white/50 text-sm">
+        © {{ getCurrentDate().split("/")[2] }} - Todos os direitos reservados
+      </p>
+      <a
+        href="https://espalha.ai"
+        target="_blank"
+        class="text-white/50 text-sm mt-2 inline-block"
+      >
+        Desenvolvido por Espalha.ai
+      </a>
+    </div>
+  </div>
+</div>

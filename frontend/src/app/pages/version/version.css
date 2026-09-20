@@ -1,0 +1,76 @@
+/* Animações personalizadas */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* Aplicar animações */
+.bg-white\/10 {
+  animation: fadeInUp 0.8s ease-out forwards;
+}
+
+/* Efeito hover nos cards */
+.bg-white\/5:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+/* Estilo para elementos interativos */
+.hover-scale:hover {
+  transform: scale(1.02);
+  transition: transform 0.2s ease;
+}
+
+/* Gradiente animado para o fundo */
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animated-gradient {
+  background: linear-gradient(-45deg, #233661, #2b50a2, #3677da, #6eb0ec);
+  background-size: 400% 400%;
+  animation: gradient-shift 15s ease infinite;
+}
+
+/* Responsividade */
+@media (max-width: 640px) {
+  .bg-white\/10 {
+    margin: 1rem;
+    padding: 1.5rem;
+  }
+}
+
+/* Text glow effect */
+.text-glow {
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+/* Version number styling */
+.version-number {
+  font-family: "Monaco", "Menlo", "Consolas", monospace;
+  letter-spacing: 0.05em;
+}

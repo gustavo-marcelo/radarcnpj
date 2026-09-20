@@ -1,0 +1,47 @@
+package ia.espalha.cnpj.consulta.dto;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
+public record EstabelecimentoDetalheResponse(
+		String cnpjBasico,
+		String cnpjOrdem,
+		String cnpjDv,
+		String cnpjCompleto,
+		String identificadorMatrizFilial,
+		String nomeFantasia,
+		String situacaoCadastral,
+		LocalDate dataSituacaoCadastral,
+		String motivoSituacaoCadastral,
+		LocalDate dataInicioAtividade,
+		String pais,
+		String cnaeFiscalPrincipal,
+		String cnaeFiscalSecundaria,
+		String cnaeDescricao,
+		String tipoLogradouro,
+		String logradouro,
+		String numero,
+		String complemento,
+		String bairro,
+		String cep,
+		String uf,
+		String municipio,
+		String municipioDescricao,
+		String nomeCidadeExterior,
+		String ddd1,
+		String telefone1,
+		String ddd2,
+		String telefone2,
+		String dddFax,
+		String fax,
+		String correioEletronico,
+		String situacaoEspecial,
+		LocalDate dataSituacaoEspecial,
+		String razaoSocial,
+		String porte,
+		String naturezaJuridica,
+		String naturezaJuridicaDescricao,
+		String qualificacaoResponsavel,
+		BigDecimal capitalSocial,
+		String enteFederativo) {
+}

@@ -1,0 +1,97 @@
+<header class="sticky top-0 z-10 border-b border-slate-200 bg-white">
+  <nav class="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
+    <div class="flex items-center gap-6">
+      <a routerLink="/empresas" class="text-lg font-semibold text-slate-800">
+        <img src="images/logo-texto.png" alt="Radar CNPJ" class="h-10 w-auto" />
+      </a>
+
+      <ul class="hidden items-center gap-4 md:flex">
+        <li>
+          <a
+            routerLink="/empresas"
+            routerLinkActive="text-indigo-600"
+            [routerLinkActiveOptions]="{ exact: false }"
+            class="text-sm font-medium text-slate-600 hover:text-slate-900"
+            >Empresas</a
+          >
+        </li>
+        <li>
+          <a
+            routerLink="/estabelecimentos"
+            routerLinkActive="text-indigo-600"
+            [routerLinkActiveOptions]="{ exact: false }"
+            class="text-sm font-medium text-slate-600 hover:text-slate-900"
+            >Estabelecimentos</a
+          >
+        </li>
+        <li>
+          <a
+            routerLink="/cnaes"
+            routerLinkActive="text-indigo-600"
+            [routerLinkActiveOptions]="{ exact: false }"
+            class="text-sm font-medium text-slate-600 hover:text-slate-900"
+            >CNAE</a
+          >
+        </li>
+        @if (auth.isAdmin()) {
+          <li>
+            <a
+              routerLink="/importacao"
+              routerLinkActive="text-indigo-600"
+              [routerLinkActiveOptions]="{ exact: false }"
+              class="text-sm font-medium text-slate-600 hover:text-slate-900"
+              >Importação</a
+            >
+          </li>
+          <li>
+            <a
+              routerLink="/usuarios"
+              routerLinkActive="text-indigo-600"
+              [routerLinkActiveOptions]="{ exact: false }"
+              class="text-sm font-medium text-slate-600 hover:text-slate-900"
+              >Usuários</a
+            >
+          </li>
+        }
+      </ul>
+    </div>
+
+    <div class="flex items-center gap-3">
+      @if (usuarioAtual(); as usuario) {
+        <span class="hidden text-sm text-slate-600 md:block">
+          {{ usuario.nome }} ({{ usuario.papel }})
+        </span>
+      }
+      <button type="button" (click)="sair()" class="text-sm font-medium text-slate-600 hover:text-red-600">
+        Sair
+      </button>
+
+      <button
+        type="button"
+        (click)="menuAberto.set(!menuAberto())"
+        class="md:hidden text-slate-600"
+        aria-label="Menu"
+      >
+        ☰
+      </button>
+    </div>
+  </nav>
+
+  @if (menuAberto()) {
+    <div class="border-t border-slate-200 px-4 py-2 md:hidden">
+      <ul class="space-y-1">
+        <li><a routerLink="/empresas" class="block py-1 text-sm text-slate-600">Empresas</a></li>
+        <li><a routerLink="/estabelecimentos" class="block py-1 text-sm text-slate-600">Estabelecimentos</a></li>
+        <li><a routerLink="/cnaes" class="block py-1 text-sm text-slate-600">CNAE</a></li>
+        @if (auth.isAdmin()) {
+          <li><a routerLink="/importacao" class="block py-1 text-sm text-slate-600">Importação</a></li>
+          <li><a routerLink="/usuarios" class="block py-1 text-sm text-slate-600">Usuários</a></li>
+        }
+      </ul>
+    </div>
+  }
+</header>
+
+<main class="mx-auto w-full max-w-7xl px-4 py-6">
+  <router-outlet></router-outlet>
+</main>

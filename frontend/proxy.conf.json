@@ -1,0 +1,7 @@
+{
+  "/api": {
+    "target": "https://api-dev.espalha.ai",
+    "secure": true,
+    "changeOrigin": true
+  }
+}

@@ -1,0 +1,179 @@
+<div class="space-y-4">
+  <h1 class="text-xl font-semibold text-slate-800">Estabelecimentos</h1>
+
+  <form class="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-4" (ngSubmit)="buscar(0)">
+    <div>
+      <label for="razaoSocial" class="mb-1 block text-sm font-medium text-slate-700">Razão social</label>
+      <input
+        id="razaoSocial"
+        type="text"
+        [(ngModel)]="razaoSocial"
+        name="razaoSocial"
+        class="w-full rounded border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+      />
+    </div>
+
+    <div>
+      <label for="nomeFantasia" class="mb-1 block text-sm font-medium text-slate-700">Nome fantasia</label>
+      <input
+        id="nomeFantasia"
+        type="text"
+        [(ngModel)]="nomeFantasia"
+        name="nomeFantasia"
+        class="w-full rounded border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+      />
+    </div>
+
+    <div>
+      <label for="cnpjBasico" class="mb-1 block text-sm font-medium text-slate-700">CNPJ básico</label>
+      <input
+        id="cnpjBasico"
+        type="text"
+        [(ngModel)]="cnpjBasico"
+        name="cnpjBasico"
+        placeholder="8 dígitos"
+        class="w-full rounded border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+      />
+    </div>
+
+    <div>
+      <label for="uf" class="mb-1 block text-sm font-medium text-slate-700">UF</label>
+      <select id="uf" [(ngModel)]="uf" name="uf" class="w-full rounded border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none">
+        <option value="">Todas</option>
+        @for (u of ufs(); track u) {
+          <option [value]="u">{{ u }}</option>
+        }
+      </select>
+    </div>
+
+    <div>
+      <label for="municipio" class="mb-1 block text-sm font-medium text-slate-700">Município</label>
+      <input
+        id="municipio"
+        type="text"
+        [(ngModel)]="municipio"
+        name="municipio"
+        class="w-full rounded border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+      />
+    </div>
+
+    <div>
+      <label for="cnae" class="mb-1 block text-sm font-medium text-slate-700">CNAE (código)</label>
+      <input
+        id="cnae"
+        type="text"
+        [(ngModel)]="cnae"
+        name="cnae"
+        placeholder="Ex.: 6201500"
+        class="w-full rounded border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+      />
+    </div>
+
+    <div>
+      <label for="tipoCnae" class="mb-1 block text-sm font-medium text-slate-700">Tipo do CNAE</label>
+      <select id="tipoCnae" [(ngModel)]="tipoCnae" name="tipoCnae" class="w-full rounded border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none">
+        <option value="principal">Principal</option>
+        <option value="secundario">Secundário</option>
+        <option value="qualquer">Qualquer um</option>
+      </select>
+    </div>
+
+    <div>
+      <label for="situacao" class="mb-1 block text-sm font-medium text-slate-700">Situação cadastral</label>
+      <select id="situacao" [(ngModel)]="situacao" name="situacao" class="w-full rounded border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none">
+        <option value="">Todas</option>
+        @for (s of situacoes(); track s.codigo) {
+          <option [value]="s.codigo">{{ s.codigo }} — {{ s.descricao }}</option>
+        }
+      </select>
+    </div>
+
+    <div>
+      <label for="limite" class="mb-1 block text-sm font-medium text-slate-700">Limite</label>
+      <input
+        id="limite"
+        type="number"
+        min="1"
+        [(ngModel)]="limite"
+        name="limite"
+        class="w-full rounded border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+      />
+    </div>
+
+    <div class="flex flex-wrap items-end gap-3">
+      <button
+        type="submit"
+        [disabled]="carregando()"
+        class="rounded bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+      >
+        {{ carregando() ? 'Buscando…' : 'Buscar' }}
+      </button>
+      <button
+        type="button"
+        [disabled]="carregando()"
+        (click)="exportar()"
+        class="rounded bg-slate-700 px-4 py-2 font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+      >
+        Exportar XLSX
+      </button>
+    </div>
+  </form>
+
+  @if (erro()) {
+    <div class="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+      {{ erro() }}
+    </div>
+  }
+
+  @if ((pagina()?.content?.length ?? 0) > 0) {
+    <div class="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 text-slate-600">
+          <tr>
+            <th class="px-4 py-2">CNPJ</th>
+            <th class="px-4 py-2">Matriz/Filial</th>
+            <th class="px-4 py-2">Razão social</th>
+            <th class="px-4 py-2">Nome fantasia</th>
+            <th class="px-4 py-2">Situação</th>
+            <th class="px-4 py-2">CNAE</th>
+            <th class="px-4 py-2">Município</th>
+            <th class="px-4 py-2">Telefone</th>
+            <th class="px-4 py-2">E-mail</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          @for (est of pagina()?.content ?? []; track est.cnpjCompleto) {
+            <tr class="hover:bg-slate-50">
+              <td class="px-4 py-2">
+                <a
+                  [routerLink]="['/estabelecimentos', est.cnpjBasico, est.cnpjOrdem, est.cnpjDv]"
+                  class="font-mono text-indigo-600 hover:underline"
+                >
+                  {{ est.cnpjCompleto }}
+                </a>
+              </td>
+              <td class="px-4 py-2 text-slate-600">{{ origemLabel(est.identificadorMatrizFilial) }}</td>
+              <td class="px-4 py-2 text-slate-800">{{ est.razaoSocial ?? '—' }}</td>
+              <td class="px-4 py-2 text-slate-600">{{ est.nomeFantasia ?? '—' }}</td>
+              <td class="px-4 py-2 text-slate-600">{{ situacaoLabel(est.situacaoCadastral) }}</td>
+              <td class="px-4 py-2 font-mono text-slate-600">{{ est.cnaeFiscalPrincipal }}</td>
+              <td class="px-4 py-2 text-slate-600">{{ est.municipio }}@if (est.municipioDescricao) {
+                <span class="text-slate-500"> — {{ est.municipioDescricao }}</span>
+              }@if (est.uf) {
+                <span>/{{ est.uf }}</span>
+              }</td>
+              <td class="px-4 py-2 text-slate-600">{{ est.ddd1 ? '(' + est.ddd1 + ') ' + est.telefone1 : '—' }}</td>
+              <td class="px-4 py-2 text-slate-600">{{ est.correioEletronico ?? '—' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-paginacao
+      (pagina)="novaPagina($event)"
+      [total]="pagina()?.totalElements ?? 0"
+      [totalPaginas]="pagina()?.totalPages ?? 0"
+      [paginaAtual]="pagina()?.page ?? 0"
+    />
+  }
+</div>

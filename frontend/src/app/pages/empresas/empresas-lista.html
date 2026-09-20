@@ -1,0 +1,126 @@
+<div class="space-y-4">
+  <h1 class="text-xl font-semibold text-slate-800">Empresas</h1>
+
+  <form class="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4" (ngSubmit)="buscar(0)">
+    <div class="min-w-56 flex-1">
+      <label for="razaoSocial" class="mb-1 block text-sm font-medium text-slate-700">Razão social</label>
+      <input
+        id="razaoSocial"
+        type="text"
+        [(ngModel)]="razaoSocial"
+        name="razaoSocial"
+        placeholder="Ex.: padaria, banco do brasil"
+        class="w-full rounded border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+      />
+    </div>
+
+    <div class="w-40">
+      <label for="cnpjBasico" class="mb-1 block text-sm font-medium text-slate-700">CNPJ básico</label>
+      <input
+        id="cnpjBasico"
+        type="text"
+        [(ngModel)]="cnpjBasico"
+        name="cnpjBasico"
+        placeholder="8 dígitos"
+        class="w-full rounded border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+      />
+    </div>
+
+    <div class="w-72">
+      <label for="natureza" class="mb-1 block text-sm font-medium text-slate-700">Natureza jurídica</label>
+      <select
+        id="natureza"
+        [(ngModel)]="natureza"
+        name="natureza"
+        class="w-full rounded border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+      >
+        <option value="">Todas</option>
+        @for (n of naturezas(); track n.codigo) {
+          <option [value]="n.codigo">{{ n.codigo }} — {{ n.descricao }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="w-32">
+      <label for="limite" class="mb-1 block text-sm font-medium text-slate-700">Limite</label>
+      <input
+        id="limite"
+        type="number"
+        min="1"
+        [(ngModel)]="limite"
+        name="limite"
+        class="w-full rounded border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+      />
+    </div>
+
+    <button
+      type="submit"
+      [disabled]="carregando()"
+      class="rounded bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+    >
+      {{ carregando() ? 'Buscando…' : 'Buscar' }}
+    </button>
+    <button
+      type="button"
+      [disabled]="carregando()"
+      (click)="exportar()"
+      class="rounded bg-slate-700 px-4 py-2 font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+    >
+      Exportar XLSX
+    </button>
+  </form>
+
+  @if (erro()) {
+    <div class="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+      {{ erro() }}
+    </div>
+  }
+
+  @if ((pagina()?.content?.length ?? 0) > 0) {
+    <div class="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 text-slate-600">
+          <tr>
+            <th class="px-4 py-2">CNPJ</th>
+            <th class="px-4 py-2">Razão social</th>
+            <th class="px-4 py-2">Natureza</th>
+            <th class="px-4 py-2">Porte</th>
+            <th class="px-4 py-2">Capital social</th>
+            <th class="px-4 py-2">Estabelecimentos</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          @for (empresa of pagina()?.content ?? []; track empresa.cnpjBasico) {
+            <tr class="hover:bg-slate-50">
+              <td class="px-4 py-2">
+                <a [routerLink]="linkEmpresa(empresa.cnpjBasico)" class="font-mono text-indigo-600 hover:underline">
+                  {{ empresa.cnpjBasico }}
+                </a>
+              </td>
+              <td class="px-4 py-2 text-slate-800">{{ empresa.razaoSocial }}</td>
+              <td class="px-4 py-2 text-slate-600">{{ empresa.naturezaJuridica }}</td>
+              <td class="px-4 py-2 text-slate-600">{{ empresa.porte }}</td>
+              <td class="px-4 py-2 text-slate-600">
+                {{ empresa.capitalSocial.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }}
+              </td>
+              <td class="px-4 py-2">
+                <a
+                  [routerLink]="['/estabelecimentos']"
+                  [queryParams]="{ cnpjBasico: empresa.cnpjBasico }"
+                  class="whitespace-nowrap text-indigo-600 hover:underline"
+                  >Ver estabelecimentos →</a
+                >
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-paginacao
+      (pagina)="novaPagina($event)"
+      [total]="pagina()?.totalElements ?? 0"
+      [totalPaginas]="pagina()?.totalPages ?? 0"
+      [paginaAtual]="pagina()?.page ?? 0"
+    />
+  }
+</div>

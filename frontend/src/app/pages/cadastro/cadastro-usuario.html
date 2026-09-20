@@ -1,0 +1,76 @@
+<div class="flex min-h-screen items-center justify-center bg-slate-100 px-4">
+  <div class="w-full max-w-sm rounded-lg bg-white p-8 shadow">
+    <h1 class="mb-1 text-center text-2xl font-semibold text-slate-800">Criar conta</h1>
+    <p class="mb-6 text-center text-sm text-slate-500">Cadastro de novo usuário</p>
+
+    @if (sucesso()) {
+      <div class="mb-4 rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+        Cadastro realizado com sucesso!
+        <a routerLink="/login" class="font-medium underline">Ir para o login</a>
+      </div>
+    }
+
+    @if (erro()) {
+      <div class="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        {{ erro() }}
+      </div>
+    }
+
+    @if (!sucesso()) {
+      <form class="space-y-4" (ngSubmit)="cadastrar()">
+        <div>
+          <label for="nome" class="mb-1 block text-sm font-medium text-slate-700">Nome</label>
+          <input
+            id="nome"
+            type="text"
+            required
+            [(ngModel)]="nome"
+            name="nome"
+            class="w-full rounded border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+          />
+        </div>
+
+        <div>
+          <label for="email" class="mb-1 block text-sm font-medium text-slate-700">E-mail</label>
+          <input
+            id="email"
+            type="email"
+            autocomplete="username"
+            required
+            [(ngModel)]="email"
+            name="email"
+            class="w-full rounded border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+          />
+        </div>
+
+        <div>
+          <label for="senha" class="mb-1 block text-sm font-medium text-slate-700">Senha</label>
+          <input
+            id="senha"
+            type="password"
+            autocomplete="new-password"
+            required
+            minlength="6"
+            [(ngModel)]="senha"
+            name="senha"
+            class="w-full rounded border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+          />
+          <p class="mt-1 text-xs text-slate-400">Mínimo de 6 caracteres.</p>
+        </div>
+
+        <button
+          type="submit"
+          [disabled]="carregando()"
+          class="w-full rounded bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+        >
+          {{ carregando() ? 'Cadastrando…' : 'Cadastrar' }}
+        </button>
+      </form>
+    }
+
+    <p class="mt-4 text-center text-sm text-slate-500">
+      Já tem conta?
+      <a routerLink="/login" class="font-medium text-indigo-600 hover:underline">Entrar</a>
+    </p>
+  </div>
+</div>

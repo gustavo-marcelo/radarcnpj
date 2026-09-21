@@ -1,0 +1,87 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versão sem o "v" (ex.: 0.1.0 gera a tag/Release v0.1.0)'
+        required: false
+        type: string
+      draft:
+        description: 'Criar como rascunho'
+        default: false
+        type: boolean
+      prerelease:
+        description: 'Marcar como pré-release'
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  backend:
+    name: Backend (jar)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Build jar
+        working-directory: cnpj
+        run: ./mvnw -B -DskipTests clean package
+
+      - name: Publicar jar no Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('v{0}', inputs.version || '0.1.0') }}
+          name: ${{ github.ref_type == 'tag' && github.ref_name || format('v{0}', inputs.version || '0.1.0') }}
+          draft: ${{ inputs.draft }}
+          prerelease: ${{ inputs.prerelease }}
+          generate_release_notes: true
+          files: cnpj/target/cnpj-0.0.1-SNAPSHOT.jar
+
+  frontend:
+    name: Frontend (SPA zip)
+    needs: backend
+    runs-on: ubuntu-latest
+    env:
+      HUSKY: 0
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependências
+        working-directory: frontend
+        run: npm ci
+
+      - name: 'Build SPA (config docker: apiBaseUrl=/api)'
+        working-directory: frontend
+        run: npm run build -- --configuration docker
+
+      - name: Empacotar dist
+        working-directory: frontend/dist/radar-cnpj/browser
+        run: zip -qr "$GITHUB_WORKSPACE/radar-cnpj-frontend.zip" .
+
+      - name: Publicar zip no Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('v{0}', inputs.version || '0.1.0') }}
+          name: ${{ github.ref_type == 'tag' && github.ref_name || format('v{0}', inputs.version || '0.1.0') }}
+          draft: ${{ inputs.draft }}
+          prerelease: ${{ inputs.prerelease }}
+          generate_release_notes: true
+          files: radar-cnpj-frontend.zip

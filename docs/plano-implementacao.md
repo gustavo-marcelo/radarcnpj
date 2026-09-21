@@ -39,6 +39,7 @@ Adicionadas: `spring-boot-starter-web`, `-security`, `-validation`, `-actuator`,
 ### 3.2 Modelo de dados
 
 - Tabelas de segurança via Flyway `V1`: `usuario`, `configuracao_importacao`, `importacao_execucao`.
+- Tabelas de dados via Flyway `V1_1` (criadas em banco vazio antes dos índices; no-op em bases já populadas).
 - Admin inicial criado por seed (`app.admin.email`/`app.admin.senha`).
 - Índices de consulta via Flyway `V2__indices_consulta.sql` + `V3__indices_texto.sql` (`pg_trgm`).
 - CNAE secundário: **decisão tomada** — índice **GIN** sobre `string_to_array(...)` (sem tabela filha).
@@ -156,7 +157,8 @@ src/app/
 
 ## 8. Próximos itens (roadmap)
 
-- [ ] CI/CD (GitHub Actions: build, testes, lint, publicação).
+- [ ] CI/CD (GitHub Actions: testes e lint em todo push).
+- [x] Release automatizado: workflow publica `cnpj.jar` e `radar-cnpj-frontend.zip`; Docker baixa o último release.
 - [ ] Testcontainers nos testes de integração (remover dependência do Postgres local).
 - [ ] Paginação por cursor/keyset para listagens muito grandes.
 - [ ] Autenticação com refresh token + logout server-side.

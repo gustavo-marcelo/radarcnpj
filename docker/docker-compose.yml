@@ -1,0 +1,75 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: cnpj-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cnpj
+      POSTGRES_PASSWORD: cnpj
+      POSTGRES_DB: cnpj
+    volumes:
+      - cnpj-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cnpj -d cnpj"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: ./cnpj.Dockerfile
+      args:
+        REPO: ${GITHUB_REPO:-gustavo-marcelo/radarcnpj}
+    image: radar-cnpj-api
+    container_name: cnpj-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/cnpj
+      SPRING_DATASOURCE_USERNAME: cnpj
+      SPRING_DATASOURCE_PASSWORD: cnpj
+      APP_DADOS_DIR: /dados
+      APP_IMPORT_ENABLED: "false"
+      APP_ADMIN_EMAIL: ${APP_ADMIN_EMAIL:-admin@exemplo.com}
+      APP_ADMIN_SENHA: ${APP_ADMIN_SENHA:-admin123}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:-docker-radar-cnpj-mude-este-segredo-em-producao-256-bits-minimos}
+      APP_JWT_EXPIRATION_SECONDS: ${APP_JWT_EXPIRATION_SECONDS:-86400}
+      APP_CORS_ORIGENS: ${APP_CORS_ORIGENS:-http://localhost:4200,http://localhost}
+      APP_CADASTRO_PUBLICO: ${APP_CADASTRO_PUBLICO:-false}
+      JAVA_OPTS: ${JAVA_OPTS:-}
+    volumes:
+      - ../dados:/dados
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: ./frontend.Dockerfile
+      args:
+        REPO: ${GITHUB_REPO:-gustavo-marcelo/radarcnpj}
+    image: radar-cnpj-frontend
+    container_name: cnpj-frontend
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "4200:80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  cnpj-db-data:

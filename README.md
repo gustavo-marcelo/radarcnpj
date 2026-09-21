@@ -53,7 +53,55 @@ Telas: **Login** e **Cadastro**, **Empresas** (lista + detalhe), **Estabelecimen
 
 ## Como executar
 
-### Pré-requisitos
+### Docker Compose (recomendado)
+
+Com **apenas o Docker instalado**, suba tudo (banco + API + frontend):
+
+```bash
+cd docker
+cp .env.example .env   # opcional — ajuste segredos/admin/CORS
+docker compose up -d --build
+```
+
+- Frontend: http://localhost:4200
+- API: http://localhost:8080 (Swagger em http://localhost:8080/swagger-ui.html)
+- Admin padrão: `admin@exemplo.com` / `admin123`
+
+Observações:
+
+- Tudo o que é Docker (compose, Dockerfiles, nginx, `.env`) vive em `docker/`.
+- Os Dockerfiles **não compilam do código**: baixam o **último Release** do GitHub
+  (`releases/latest`) — o jar da API e o zip do SPA. Em fork, ajuste `GITHUB_REPO` no `.env`.
+  **Atenção:** é preciso existir ao menos um Release antes do `--build`.
+- Cole os arquivos `.zip` da Receita em `dados/` (na raiz, montado em `/dados` no contêiner da API) e
+  dispare a importação pela tela de administração ou com `APP_IMPORT_ENABLED=true`.
+- Os dados ficam em um volume Docker (`cnpj-db-data`); ele só é criado na primeira execução.
+- Logs: `docker compose logs -f api`.
+
+### Releases (GitHub)
+
+Os artefatos publicados em um Release são consumidos pelo Docker:
+
+- `cnpj.jar` — API Spring Boot (backend)
+- `radar-cnpj-frontend.zip` — SPA Angular (frontend, `apiBaseUrl=/api`)
+
+Dois jeitos de criar um Release (workflow `Release` em `.github/workflows/release.yml`):
+
+```bash
+# 1) Automação via tag
+git tag v0.1.0       # ou a versão que desejar
+git push origin v0.1.0
+```
+
+ou
+
+```text
+2) GitHub → Actions → Release → "Run workflow" (preencha a versão, sem o "v").
+```
+
+O workflow gera as notas do release e publica os dois assets.
+
+### Pré-requisitos (execução manual)
 
 - [JDK 25](https://openjdk.org/projects/jdk/25/) (o backend usa o **Maven Wrapper** incluso — sem instalação de Maven)
 - [Node.js 20+](https://nodejs.org/) e Angular CLI
@@ -128,10 +176,11 @@ Baixe os arquivos de [dados abertos do CNPJ](https://dados-abertos-rf-cnpj.casad
 
 ## Roadmap
 
-- [ ] CI/CD (GitHub Actions: build, testes, lint, publicação)
+- [ ] CI/CD (GitHub Actions: testes e lint em todo push)
+- [x] Release automatizado (workflow publica jar + SPA no GitHub; Docker baixa o último release)
 - [ ] Autenticação por refresh token
 - [ ] Exportação assíncrona com tarefa em segundo plano e download posterior
-- [ ] Docker Compose (postgres + api + frontend)
+- [x] Docker Compose (postgres + api + frontend)
 - [ ] Página pública de exemplos de API
 
 ## Licença

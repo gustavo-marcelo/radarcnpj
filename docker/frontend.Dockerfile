@@ -6,6 +6,7 @@ ARG ASSET=radar-cnpj-frontend.zip
 
 RUN apk add --no-cache curl unzip \
     && curl -fsSL -o /tmp/radar-cnpj.zip "https://github.com/${REPO}/releases/latest/download/${ASSET}" \
+    && rm -rf /usr/share/nginx/html \
     && mkdir -p /usr/share/nginx/html \
     && unzip -q /tmp/radar-cnpj.zip -d /usr/share/nginx/html \
     && rm -f /tmp/radar-cnpj.zip \

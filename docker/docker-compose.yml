@@ -41,7 +41,7 @@ services:
       APP_CADASTRO_PUBLICO: ${APP_CADASTRO_PUBLICO:-false}
       JAVA_OPTS: ${JAVA_OPTS:-}
     volumes:
-      - ../dados:/dados
+      - ${DADOS_DIR:-../dados}:/dados
     ports:
       - "8080:8080"
     healthcheck:

@@ -39,6 +39,10 @@ jobs:
         working-directory: cnpj
         run: ./mvnw -B -DskipTests clean package
 
+      - name: Renomear artefato
+        working-directory: cnpj/target
+        run: mv cnpj-0.0.1-SNAPSHOT.jar cnpj.jar
+
       - name: Publicar jar no Release
         uses: softprops/action-gh-release@v2
         with:
@@ -47,7 +51,7 @@ jobs:
           draft: ${{ inputs.draft }}
           prerelease: ${{ inputs.prerelease }}
           generate_release_notes: true
-          files: cnpj/target/cnpj-0.0.1-SNAPSHOT.jar
+          files: cnpj/target/cnpj.jar
 
   frontend:
     name: Frontend (SPA zip)

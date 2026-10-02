@@ -1,4 +1,4 @@
-CREATE TABLE usuario (
+CREATE TABLE IF NOT EXISTS usuario (
     id            bigserial PRIMARY KEY,
     nome          varchar(150) NOT NULL,
     email         varchar(200) NOT NULL UNIQUE,

@@ -24,6 +24,22 @@ class ConsultaIntegracaoTests extends BaseIntegracaoTest {
 				.body(JsonNode.class);
 	}
 
+	private JsonNode estabelecimentosPorCnae(String token, String cnae, String tipo, String cursor, int size) {
+		return autenticado(token).get()
+				.uri(b -> {
+					var uri = b.path("/api/estabelecimentos")
+							.queryParam("cnae", cnae)
+							.queryParam("tipoCnae", tipo)
+							.queryParam("size", size);
+					if (cursor != null) {
+						uri = uri.queryParam("cursor", cursor);
+					}
+					return uri.build();
+				})
+				.retrieve()
+				.body(JsonNode.class);
+	}
+
 	@Test
 	void listarEmpresasSemFiltroRetornaPagina() {
 		JsonNode corpo = autenticado(tokenAdmin()).get()
@@ -66,6 +82,95 @@ class ConsultaIntegracaoTests extends BaseIntegracaoTest {
 
 		assertThat(corpo.get("totalElements").asLong()).isGreaterThan(0);
 		assertThat(corpo.at("/content/0/cnaeFiscalPrincipal").asText()).isEqualTo("4712100");
+	}
+
+	@Test
+	void filtrarPorCnaePrincipalIgnoraCnaeSecundario() {
+		JsonNode principal = estabelecimentosPorCnae(tokenUsuario(), "4712100", "principal", null, 20);
+		JsonNode secundarios = estabelecimentosPorCnae(tokenUsuario(), "4712100", "secundario", null, 20);
+
+		// Os dois conjuntos podem intersectar, mas o filtro por principal não pode
+		// devolver linhas cujo CNAE principal é outro.
+		for (JsonNode linha : principal.get("content")) {
+			assertThat(linha.get("cnaeFiscalPrincipal").asText()).isEqualTo("4712100");
+		}
+		for (JsonNode linha : secundarios.get("content")) {
+			assertThat(linha.get("cnaeFiscalSecundaria").asText()).contains("4712100");
+		}
+	}
+
+	@Test
+	void filtrarPorCnaeAmbosAceitaPrincipalESecundario() {
+		JsonNode corpo = estabelecimentosPorCnae(tokenUsuario(), "4712100", "ambos", null, 50);
+
+		assertThat(corpo.get("content").size()).isGreaterThan(0);
+		for (JsonNode linha : corpo.get("content")) {
+			boolean casa = "4712100".equals(linha.get("cnaeFiscalPrincipal").asText())
+					|| linha.get("cnaeFiscalSecundaria").asText().contains("4712100");
+			assertThat(casa).isTrue();
+		}
+	}
+
+	@Test
+	void paginacaoPorCursorNaoRepeteNemPulaLinhas() {
+		String token = tokenUsuario();
+		JsonNode primeira = estabelecimentosPorCnae(token, "4712100", "principal", null, 20);
+
+		assertThat(primeira.get("content").size()).isEqualTo(20);
+		String cursor = primeira.get("nextCursor").asText();
+		assertThat(cursor).isNotBlank();
+
+		JsonNode segunda = estabelecimentosPorCnae(token, "4712100", "principal", cursor, 20);
+
+		assertThat(segunda.get("content").size()).isEqualTo(20);
+		// O cursor retoma exatamente após a última linha da página anterior.
+		String ultimoPrimeiro = primeira.at("/content/19/cnpjBasico").asText() + primeira.at("/content/19/cnpjOrdem").asText();
+		String chaveSegunda = segunda.at("/content/0/cnpjBasico").asText() + segunda.at("/content/0/cnpjOrdem").asText();
+		assertThat(chaveSegunda).isGreaterThan(ultimoPrimeiro);
+
+		// Percorrer o cursor tem de reproduzir a paginação por offset, sem lacunas
+		// nem repetições.
+		JsonNode porOffset = autenticado(token).get()
+				.uri(b -> b.path("/api/estabelecimentos")
+						.queryParam("cnae", "4712100")
+						.queryParam("tipoCnae", "principal")
+						.queryParam("size", 20)
+						.queryParam("page", 1)
+						.build())
+				.retrieve()
+				.body(JsonNode.class);
+		for (int i = 0; i < 20; i++) {
+			assertThat(segunda.at("/content/" + i + "/cnpjCompleto").asText())
+					.isEqualTo(porOffset.at("/content/" + i + "/cnpjCompleto").asText());
+		}
+	}
+
+	@Test
+	void paginaFinalNaoDevolveCursor() {
+		String token = tokenUsuario();
+		JsonNode unica = estabelecimentosPorCnae(token, "4712100", "principal", null, 100);
+
+		// A última página não pode anunciar próxima página inexistente.
+		assertThat(unica.get("content").size()).isLessThanOrEqualTo(100);
+		if (unica.get("content").size() < 100) {
+			assertThat(unica.get("nextCursor").isNull()).isTrue();
+		}
+	}
+
+	@Test
+	void cursorMalformadoCaiParaPrimeiraPagina() {
+		JsonNode comCursor = autenticado(tokenUsuario()).get()
+				.uri(b -> b.path("/api/estabelecimentos")
+						.queryParam("cnae", "4712100")
+						.queryParam("tipoCnae", "principal")
+						.queryParam("cursor", "nao-e-um-cursor-valido!!")
+						.build())
+				.retrieve()
+				.body(JsonNode.class);
+		JsonNode semCursor = estabelecimentosPorCnae(tokenUsuario(), "4712100", "principal", null, 20);
+
+		assertThat(comCursor.at("/content/0/cnpjCompleto").asText())
+				.isEqualTo(semCursor.at("/content/0/cnpjCompleto").asText());
 	}
 
 	@Test

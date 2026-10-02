@@ -33,10 +33,11 @@ public class EstabelecimentoController {
 			@RequestParam(required = false) String uf,
 			@RequestParam(required = false) String municipio,
 			@RequestParam(required = false) String situacao,
-			@RequestParam(required = false) String matrizFilial) {
+			@RequestParam(required = false) String matrizFilial,
+			@RequestParam(required = false) String cursor) {
 		int tamanho = Paginacao.tamanho(size);
 		return estabelecimentoRepository.buscar(cnpjBasico, nomeFantasia, cnae, tipoCnae,
-				uf, municipio, situacao, matrizFilial, Paginacao.pagina(page), tamanho);
+				uf, municipio, situacao, matrizFilial, cursor, Paginacao.pagina(page), tamanho);
 	}
 
 	@GetMapping("/{cnpjBasico}/{cnpjOrdem}/{cnpjDv}")

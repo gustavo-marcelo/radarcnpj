@@ -14,6 +14,7 @@ import org.springframework.util.StringUtils;
 
 import ia.espalha.cnpj.consulta.dto.EstabelecimentoDetalheResponse;
 import ia.espalha.cnpj.consulta.dto.EstabelecimentoResponse;
+import ia.espalha.cnpj.shared.domain.Cursor;
 import ia.espalha.cnpj.shared.domain.PaginaResponse;
 
 @Repository
@@ -82,66 +83,74 @@ public class EstabelecimentoConsultaRepository {
 
 	public PaginaResponse<EstabelecimentoResponse> buscar(String cnpjBasico, String nomeFantasia, String cnae,
 			String tipoCnae, String uf, String municipio, String situacao, String matrizFilial,
-			int page, int size) {
-		Filtros f = montarFiltros(cnpjBasico, nomeFantasia, uf, municipio, situacao, matrizFilial);
+			String cursor, int page, int size) {
+		Cursor seek = Cursor.decode(cursor);
+		Consulta c = montarConsulta(cnpjBasico, nomeFantasia, cnae, tipoCnae, uf, municipio, situacao,
+				matrizFilial, seek);
 
-		if (StringUtils.hasText(cnae)) {
-			Cnae c = montarCnae(cnae.trim(),
-					StringUtils.hasText(tipoCnae) ? tipoCnae.trim() : "ambos");
-			return buscarComCnae(c.sql(), c.params().toArray(), f, page, size);
-		}
-
-		long total = " WHERE TRUE".contentEquals(f.where())
+		long total = " WHERE TRUE".contentEquals(c.where())
 				? totalEstimado()
-				: jdbc.queryForObject("SELECT count(*) " + FROM + f.where(), Long.class, f.params().toArray());
-		List<Object> params = new ArrayList<>(f.params());
-		params.add(size);
-		params.add((long) page * size);
+				: jdbc.queryForObject("SELECT count(*) " + FROM + c.where(), Long.class, c.params().toArray());
+
+		// Com cursor o LIMIT já vem ancorado no índice, então o OFFSET é zero e o custo
+		// independe da profundidade. Nos dois modos busca-se size+1 para saber se há
+		// próxima página: no modo offset o total nem sempre é exato (sem filtro ele vem
+		// do reltuples), então não serve para decidir.
+		boolean porCursor = seek != null;
+		List<Object> params = new ArrayList<>(c.params());
+		params.add(size + 1);
+		params.add(porCursor ? 0L : (long) page * size);
 		List<Linha> linhas = jdbc.query(
-				"SELECT " + COLUNAS + " " + FROM + f.where()
+				"SELECT " + COLUNAS + " " + FROM + c.where()
 						+ " ORDER BY est.cnpj_basico, est.cnpj_ordem LIMIT ? OFFSET ?",
 				(rs, rowNum) -> toLinha(rs),
 				params.toArray());
-		return PaginaResponse.of(preencherEmpresa(linhas), page, size, total);
+
+		boolean temProxima = linhas.size() > size;
+		if (temProxima) {
+			linhas = new ArrayList<>(linhas.subList(0, size));
+		}
+		String proximo = linhas.isEmpty() || !temProxima
+				? null
+				: Cursor.of(linhas.get(linhas.size() - 1).cnpjBasico(),
+						linhas.get(linhas.size() - 1).cnpjOrdem()).encode();
+		return PaginaResponse.of(preencherEmpresa(linhas), page, size, total, proximo);
 	}
 
 	public List<EstabelecimentoResponse> exportar(String cnpjBasico, String nomeFantasia, String cnae,
 			String tipoCnae, String uf, String municipio, String situacao, String matrizFilial, int limite) {
-		Filtros f = montarFiltros(cnpjBasico, nomeFantasia, uf, municipio, situacao, matrizFilial);
-		if (StringUtils.hasText(cnae)) {
-			Cnae c = montarCnae(cnae.trim(),
-					StringUtils.hasText(tipoCnae) ? tipoCnae.trim() : "ambos");
-			String join = FROM + " JOIN (" + c.sql() + ") sel"
-					+ " ON est.cnpj_basico = sel.cnpj_basico AND est.cnpj_ordem = sel.cnpj_ordem";
-			Object[] params = concat(concat(c.params().toArray(), f.params().toArray()),
-					new Object[] { limite });
-			List<Linha> linhas = jdbc.query(
-					"SELECT " + COLUNAS + " " + join + f.where()
-							+ " ORDER BY est.cnpj_basico, est.cnpj_ordem LIMIT ?",
-					(rs, rowNum) -> toLinha(rs),
-					params);
-			return preencherEmpresa(linhas);
-		}
-		List<Object> params = new ArrayList<>(f.params());
+		Consulta c = montarConsulta(cnpjBasico, nomeFantasia, cnae, tipoCnae, uf, municipio, situacao,
+				matrizFilial, null);
+		List<Object> params = new ArrayList<>(c.params());
 		params.add(limite);
 		List<Linha> linhas = jdbc.query(
-				"SELECT " + COLUNAS + " " + FROM + f.where()
+				"SELECT " + COLUNAS + " " + FROM + c.where()
 						+ " ORDER BY est.cnpj_basico, est.cnpj_ordem LIMIT ?",
 				(rs, rowNum) -> toLinha(rs),
 				params.toArray());
 		return preencherEmpresa(linhas);
 	}
 
-	private record Filtros(String where, List<Object> params) {
+	private record Consulta(String where, List<Object> params) {
 	}
 
-	private record Cnae(String sql, List<Object> params) {
-	}
-
-	private Filtros montarFiltros(String cnpjBasico, String nomeFantasia, String uf, String municipio,
-			String situacao, String matrizFilial) {
+	/**
+	 * Filtro de CNAE vai direto no WHERE de {@code est}, sem self-join.
+	 *
+	 * <p>A versão anterior montava {@code JOIN (SELECT cnpj_basico, cnpj_ordem FROM
+	 * estabelecimento WHERE cnae = ?) sel ON est.cnpj_basico = sel.cnpj_basico AND
+	 * est.cnpj_ordem = sel.cnpj_ordem} para combinar o índice do CNAE com os demais
+	 * filtros. Como a subconsulta lia as mesmas linhas da tabela externa, o join não
+	 * eliminava nada — (cnpj_basico, cnpj_ordem) é único, o que confirmei na base. O
+	 * planner, porém, estimava 28M de linhas do lado sem filtro e escolhia um
+	 * {@code Hash Join} com {@code Seq Scan} da tabela inteira: uma página de 20
+	 * linhas levava 235 s. Com o predicado no lugar, {@code ix_estab_cnae_princ_cnpj}
+	 * atende filtro, ordenação e LIMIT num único index scan.
+	 */
+	private Consulta montarConsulta(String cnpjBasico, String nomeFantasia, String cnae, String tipoCnae,
+			String uf, String municipio, String situacao, String matrizFilial, Cursor seek) {
 		StringBuilder where = new StringBuilder(" WHERE TRUE");
-		List<Object> params = new ArrayList<>(6);
+		List<Object> params = new ArrayList<>(8);
 		if (StringUtils.hasText(cnpjBasico)) {
 			where.append(" AND est.cnpj_basico = ?");
 			params.add(cnpjBasico.trim());
@@ -166,53 +175,35 @@ public class EstabelecimentoConsultaRepository {
 			where.append(" AND est.identificador_matriz_filial = ?");
 			params.add(matrizFilial.trim());
 		}
-		return new Filtros(where.toString(), params);
-	}
-
-	private Cnae montarCnae(String codigo, String tipo) {
-		List<Object> args = new ArrayList<>(2);
-		String inner;
-		if (tipo.equals("principal")) {
-			inner = "SELECT cnpj_basico, cnpj_ordem FROM estabelecimento WHERE cnae_fiscal_principal = ?";
-			args.add(codigo);
-		} else if (tipo.equals("secundario")) {
-			inner = "SELECT cnpj_basico, cnpj_ordem FROM estabelecimento"
-					+ " WHERE string_to_array(cnae_fiscal_secundaria, ',') @> ARRAY[?]::text[]";
-			args.add(codigo);
-		} else {
-			// "ambos" (ou tipoCnae inválido): UNION ALL dos dois índices
-			inner = "(SELECT cnpj_basico, cnpj_ordem FROM estabelecimento WHERE cnae_fiscal_principal = ?)"
-					+ " UNION ALL "
-					+ "(SELECT cnpj_basico, cnpj_ordem FROM estabelecimento"
-					+ " WHERE string_to_array(cnae_fiscal_secundaria, ',') @> ARRAY[?]::text[])";
-			args.add(codigo);
-			args.add(codigo);
+		if (StringUtils.hasText(cnae)) {
+			Cnae filtro = filtroCnae(cnae.trim(), StringUtils.hasText(tipoCnae) ? tipoCnae.trim() : "ambos");
+			where.append(filtro.sql());
+			params.addAll(filtro.params());
 		}
-		return new Cnae(inner, args);
+		if (seek != null) {
+			where.append(" AND (est.cnpj_basico, est.cnpj_ordem) > (?, ?)");
+			params.add(seek.cnpjBasico());
+			params.add(seek.cnpjOrdem());
+		}
+		return new Consulta(where.toString(), params);
 	}
 
-	/**
-	 * Filtro por CNAE: o conjunto de candidatas é pequeno, então primeiro resolve-se
-	 * no índice apropriado (btree do principal / GIN da secundária) e depois
-	 * aplicam-se os demais filtros no JOIN. Evita que o planner opte por seq scan da
-	 * tabela de 68M de linhas ao combinar CNAE com outras colunas.
-	 */
-	private PaginaResponse<EstabelecimentoResponse> buscarComCnae(String inner, Object[] argsInner,
-			Filtros f, int page, int size) {
-		String join = FROM + " JOIN (" + inner + ") sel"
-				+ " ON est.cnpj_basico = sel.cnpj_basico AND est.cnpj_ordem = sel.cnpj_ordem";
-		Object[] targs = concat(argsInner, f.params().toArray());
-		long total = jdbc.queryForObject("SELECT count(*) " + join + f.where(), Long.class, targs);
-		// MATERIALIZED isola o LIMIT/ORDER BY do conjunto pequeno de candidatas:
-		// sem isso o planner tenta "ordenar com ponto de partida" varrendo o índice
-		// global de cnpj_basico (68M de linhas) em vez de usar o índice do CNAE.
-		Object[] cparams = concat(concat(argsInner, f.params().toArray()), new Object[] { size, (long) page * size });
-		String materializado = "WITH pag AS MATERIALIZED (SELECT " + COLUNAS + " " + join + f.where() + ")";
-		List<Linha> linhas = jdbc.query(
-				materializado + " SELECT * FROM pag ORDER BY cnpj_basico, cnpj_ordem LIMIT ? OFFSET ?",
-				(rs, rowNum) -> toLinha(rs),
-				cparams);
-		return PaginaResponse.of(preencherEmpresa(linhas), page, size, total);
+	private record Cnae(String sql, List<Object> params) {
+	}
+
+	private Cnae filtroCnae(String codigo, String tipo) {
+		String secundario = "string_to_array(est.cnae_fiscal_secundaria, ',') @> ARRAY[?]::text[]";
+		if (tipo.equals("principal")) {
+			return new Cnae(" AND est.cnae_fiscal_principal = ?", List.of(codigo));
+		}
+		if (tipo.equals("secundario")) {
+			return new Cnae(" AND " + secundario, List.of(codigo));
+		}
+		// "ambos" (ou tipoCnae inválido). Os dois ramos ficam num único OR porque o
+		// índice do principal e o GIN da secundária atendem filtros diferentes; sem
+		// UNION ALL o planner não tem como somar as duas varreduras.
+		return new Cnae(" AND (est.cnae_fiscal_principal = ? OR " + secundario + ")",
+				List.of(codigo, codigo));
 	}
 
 	/**
@@ -279,13 +270,6 @@ public class EstabelecimentoConsultaRepository {
 				},
 				distintos.toArray());
 		return porCodigo;
-	}
-
-	private static Object[] concat(Object[] a, Object[] b) {
-		Object[] r = new Object[a.length + b.length];
-		System.arraycopy(a, 0, r, 0, a.length);
-		System.arraycopy(b, 0, r, a.length, b.length);
-		return r;
 	}
 
 	private static Linha toLinha(java.sql.ResultSet rs) throws java.sql.SQLException {
